@@ -51,8 +51,85 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene {
             terminateApp()
         }.keyboardShortcut("Q", modifiers: .command)
     } label: {
-        // .font(.system(.body, design: .monospaced)) doesn't work unfortunately :(
-        Text(viewModel.isEnabled ? viewModel.trayText : "⏸️")
+        if viewModel.isEnabled {
+            menuLabel(viewModel: viewModel)
+                .id("\(viewModel.workspaces.hashValue)\(viewModel.trayItems.hashValue)")
+        } else {
+            Text("⏸️")
+        }
+    }
+}
+
+struct menuLabel: View {
+    var viewModel: TrayMenuModel
+    
+    var body: some View {
+        let renderer = ImageRenderer(content: imageContent)
+        if let cgImage = renderer.cgImage {
+            Image(cgImage, scale: 2, label: Text(""))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        } else {
+            // In case image can't be rendered fallback to default text
+            Text(viewModel.trayText)
+        }
+    }
+    
+    // I used a height that's twice as large as what I want and then use a scale of 2 to make the images look smoother
+    private var imageContent: some View {
+        HStack(spacing: 4) {
+            switch config.menuBarStyle {
+            case .text:
+                Text(viewModel.trayText)
+                    .font(.system(.largeTitle, design: .monospaced))
+                    .foregroundStyle(Color.white)
+            case .image, .full:
+                ForEach(viewModel.trayItems, id:\.name) { item in
+                    Image(systemName: item.systemImageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundStyle(Color.white)
+                        .id(item.name)
+                }
+                
+                if config.menuBarStyle == .full {
+                    let otherWorkspaces = Workspace.all.filter { workspace in
+                        !workspace.isEffectivelyEmpty && !viewModel.trayItems.contains(where: { item in item.name == workspace.name })
+                    }
+                    if !otherWorkspaces.isEmpty {
+                        Text("|")
+                            .foregroundStyle(Color.gray)
+                            .font(.system(.largeTitle, design: .monospaced))
+                            .padding(.bottom, 2)
+                        
+                        ForEach(otherWorkspaces, id:\.name) { item in
+                            Text(item.name)
+                                .foregroundStyle(Color.gray)
+                                .font(.system(.largeTitle, design: .monospaced))
+                                .id(item.name)
+                                .padding(.trailing, 2)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(height: 40)
+    }
+}
+
+enum MenuBarStyle: String {
+    case text = "text"
+    case image = "image"
+    case full = "image-with-background-workspaces"
+}
+
+extension String {
+    func parseMenuBarStyle() -> MenuBarStyle? {
+        if let parsed = MenuBarStyle(rawValue: self) {
+            return parsed
+        } else {
+            return nil
+        }
     }
 }
 

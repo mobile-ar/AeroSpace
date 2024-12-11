@@ -26,6 +26,9 @@ accordion-padding = 30
 # Possible values: tiles|accordion
 default-root-container-layout = 'tiles'
 
+# Possible values: text|image|image-with-background-workspaces
+menu-bar-style = 'text'
+
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
 #               tall monitor (anything higher than wide) gets vertical orientation
