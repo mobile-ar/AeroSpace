@@ -75,7 +75,7 @@ struct menuLabel: View {
             Text(viewModel.trayText)
         }
     }
-    
+
     // I used a height that's twice as large as what I want and then use a scale of 2 to make the images look smoother
     private var imageContent: some View {
         HStack(spacing: 4) {
@@ -83,6 +83,7 @@ struct menuLabel: View {
             case .text:
                 Text(viewModel.trayText)
                     .font(.system(.largeTitle, design: .monospaced))
+                    .bold()
             case .image, .full:
                 ForEach(viewModel.trayItems, id:\.name) { item in
                     Image(systemName: item.systemImageName)
@@ -90,7 +91,6 @@ struct menuLabel: View {
                         .aspectRatio(contentMode: .fit)
                         .id(item.name)
                 }
-                
                 if config.menuBarStyle == .full {
                     let otherWorkspaces = Workspace.all.filter { workspace in
                         !workspace.isEffectivelyEmpty && !viewModel.trayItems.contains(where: { item in item.name == workspace.name })
@@ -98,11 +98,14 @@ struct menuLabel: View {
                     if !otherWorkspaces.isEmpty {
                         Text("|")
                             .font(.system(.largeTitle, design: .monospaced))
+                            .bold()
+                            .opacity(0.7)
                             .padding(.bottom, 2)
-                        
                         ForEach(otherWorkspaces, id:\.name) { item in
                             Text(item.name)
                                 .font(.system(.largeTitle, design: .monospaced))
+                                .bold()
+                                .opacity(0.7)
                                 .id(item.name)
                                 .padding(.trailing, 2)
                         }
