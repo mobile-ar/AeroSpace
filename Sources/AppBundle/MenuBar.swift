@@ -66,7 +66,8 @@ struct menuLabel: View {
     var body: some View {
         let renderer = ImageRenderer(content: imageContent)
         if let cgImage = renderer.cgImage {
-            Image(cgImage, scale: 2, label: Text(""))
+            Image(cgImage, scale: 2, label: Text(viewModel.trayText))
+                .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
         } else {
@@ -82,13 +83,11 @@ struct menuLabel: View {
             case .text:
                 Text(viewModel.trayText)
                     .font(.system(.largeTitle, design: .monospaced))
-                    .foregroundStyle(Color.white)
             case .image, .full:
                 ForEach(viewModel.trayItems, id:\.name) { item in
                     Image(systemName: item.systemImageName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .foregroundStyle(Color.white)
                         .id(item.name)
                 }
                 
@@ -98,13 +97,11 @@ struct menuLabel: View {
                     }
                     if !otherWorkspaces.isEmpty {
                         Text("|")
-                            .foregroundStyle(Color.gray)
                             .font(.system(.largeTitle, design: .monospaced))
                             .padding(.bottom, 2)
                         
                         ForEach(otherWorkspaces, id:\.name) { item in
                             Text(item.name)
-                                .foregroundStyle(Color.gray)
                                 .font(.system(.largeTitle, design: .monospaced))
                                 .id(item.name)
                                 .padding(.trailing, 2)
