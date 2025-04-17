@@ -126,6 +126,7 @@ struct MenuBarLabel: View {
                     } else {
                         Image(systemName: item.systemImageName)
                             .resizable()
+                            .frame(width: 36, height: 36)
                             .aspectRatio(contentMode: .fit)
                             .foregroundStyle(color)
                         if item.type == .mode {
@@ -156,6 +157,7 @@ struct MenuBarLabel: View {
                                 } else {
                                     Image(systemName: "\(item.name.lowercased()).square")
                                         .resizable()
+                                        .frame(width: 36, height: 36)
                                         .aspectRatio(contentMode: .fit)
                                         .foregroundStyle(color)
                                 }
