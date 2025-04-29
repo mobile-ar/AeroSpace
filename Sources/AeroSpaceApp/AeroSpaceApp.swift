@@ -16,6 +16,6 @@ struct AeroSpaceApp: App {
 
     @MainActor // macOS 13
     var body: some Scene {
-        menuBar(viewModel: viewModel, appearance: appearance)
+        MenuBar(viewModel: viewModel, appearance: appearance)
     }
 }

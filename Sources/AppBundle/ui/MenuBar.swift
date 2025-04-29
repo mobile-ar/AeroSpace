@@ -3,82 +3,98 @@ import Foundation
 import SwiftUI
 
 @MainActor
-public func menuBar(viewModel: TrayMenuModel, appearance: Appearance) -> some Scene { // todo should it be converted to "SwiftUI struct"?
-    MenuBarExtra {
-        let shortIdentification = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitShortHash)"
-        let identification      = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitHash)"
-        Text(shortIdentification)
-        Button("Copy to clipboard") { identification.copyToClipboard() }
-            .keyboardShortcut("C", modifiers: .command)
-        Divider()
-        if let token: RunSessionGuard = .isServerEnabled {
-            Text("Workspaces:")
-            ForEach(viewModel.workspaces, id: \.name) { workspace in
-                Button {
-                    Task {
-                        try await runSession(.menuBarButton, token) { _ = Workspace.get(byName: workspace.name).focusWorkspace() }
-                    }
-                } label: {
-                    Toggle(isOn: .constant(workspace.isFocused)) {
-                        Text(workspace.name + workspace.suffix).font(.system(.body, design: .monospaced))
-                    }
-                }
-            }
+public struct MenuBar: Scene {
+    @StateObject private var viewModel: TrayMenuModel
+    @StateObject private var appearance: Appearance
+
+    public init(viewModel: TrayMenuModel, appearance: Appearance) {
+        self._viewModel = .init(wrappedValue: viewModel)
+        self._appearance = .init(wrappedValue: appearance)
+    }
+
+    public var body: some Scene {
+        MenuBarExtra {
+            let shortIdentification = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitShortHash)"
+            let identification      = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitHash)"
+            Text(shortIdentification)
+            Button("Copy to clipboard") { identification.copyToClipboard() }
+                .keyboardShortcut("C", modifiers: .command)
             Divider()
-        }
-        getExperimentalUISettingsMenu(viewModel: viewModel, appearance: appearance)
-        Divider()
-        Button(viewModel.isEnabled ? "Disable" : "Enable") {
-            Task {
-                try await runSession(.menuBarButton, .forceRun) { () throws in
-                    _ = try await EnableCommand(args: EnableCmdArgs(rawArgs: [], targetState: .toggle))
-                        .run(.defaultEnv, .emptyStdin)
+            if let token: RunSessionGuard = .isServerEnabled {
+                Text("Workspaces:")
+                ForEach(viewModel.workspaces, id: \.name) { workspace in
+                    Button {
+                        Task {
+                            try await runSession(.menuBarButton, token) { _ = Workspace.get(byName: workspace.name).focusWorkspace() }
+                        }
+                    } label: {
+                        Toggle(isOn: .constant(workspace.isFocused)) {
+                            Text(workspace.name + workspace.suffix).font(.system(.body, design: .monospaced))
+                        }
+                    }
                 }
+                Divider()
             }
-        }.keyboardShortcut("E", modifiers: .command)
-        let editor = getTextEditorToOpenConfig()
-        Button("Open config in '\(editor.lastPathComponent)'") {
-            let fallbackConfig: URL = FileManager.default.homeDirectoryForCurrentUser.appending(path: configDotfileName)
-            switch findCustomConfigUrl() {
-                case .file(let url):
-                    url.open(with: editor)
-                case .noCustomConfigExists:
-                    _ = try? FileManager.default.copyItem(atPath: defaultConfigUrl.path, toPath: fallbackConfig.path)
-                    fallbackConfig.open(with: editor)
-                case .ambiguousConfigError:
-                    fallbackConfig.open(with: editor)
-            }
-        }.keyboardShortcut(",", modifiers: .command)
-        if let token: RunSessionGuard = .isServerEnabled {
-            Button("Reload config") {
+            ExperimentalUISettingsMenu(viewModel: viewModel, appearance: appearance)
+            Divider()
+            Button(viewModel.isEnabled ? "Disable" : "Enable") {
                 Task {
-                    try await runSession(.menuBarButton, token) { _ = reloadConfig() }
+                    try await runSession(.menuBarButton, .forceRun) { () throws in
+                        _ = try await EnableCommand(args: EnableCmdArgs(rawArgs: [], targetState: .toggle))
+                            .run(.defaultEnv, .emptyStdin)
+                    }
                 }
-            }.keyboardShortcut("R", modifiers: .command)
-        }
-        Button("Quit \(aeroSpaceAppName)") {
-            Task {
-                defer { terminateApp() }
-                try await terminationHandler.beforeTermination()
+            }.keyboardShortcut("E", modifiers: .command)
+            let editor = getTextEditorToOpenConfig()
+            Button("Open config in '\(editor.lastPathComponent)'") {
+                let fallbackConfig: URL = FileManager.default.homeDirectoryForCurrentUser.appending(path: configDotfileName)
+                switch findCustomConfigUrl() {
+                    case .file(let url):
+                        url.open(with: editor)
+                    case .noCustomConfigExists:
+                        _ = try? FileManager.default.copyItem(atPath: defaultConfigUrl.path, toPath: fallbackConfig.path)
+                        fallbackConfig.open(with: editor)
+                    case .ambiguousConfigError:
+                        fallbackConfig.open(with: editor)
+                }
+            }.keyboardShortcut(",", modifiers: .command)
+            if let token: RunSessionGuard = .isServerEnabled {
+                Button("Reload config") {
+                    Task {
+                        try await runSession(.menuBarButton, token) { _ = reloadConfig() }
+                    }
+                }.keyboardShortcut("R", modifiers: .command)
             }
-        }.keyboardShortcut("Q", modifiers: .command)
-    } label: {
-        if viewModel.isEnabled {
-            switch viewModel.experimentalUISettings.displayStyle {
-                case .monospacedText:
-                    MenuBarLabel(viewModel.trayText)
-                case .systemText:
-                    MenuBarLabel(viewModel.trayText, textStyle: .system)
-                case .squares:
-                    MenuBarLabel(viewModel.trayText, trayItems: viewModel.trayItems)
-                case .i3:
-                    MenuBarLabel(viewModel.trayText, trayItems: viewModel.trayItems, workspaces: viewModel.workspaces)
+            Button("Quit \(aeroSpaceAppName)") {
+                Task {
+                    defer { terminateApp() }
+                    try await terminationHandler.beforeTermination()
+                }
+            }.keyboardShortcut("Q", modifiers: .command)
+        } label: {
+            if viewModel.isEnabled {
+                switch viewModel.experimentalUISettings.displayStyle {
+                    case .monospacedText:
+                        MenuBarLabel(viewModel.trayText)
+                    case .systemText:
+                        MenuBarLabel(viewModel.trayText, textStyle: .system)
+                    case .squares:
+                        MenuBarLabel(viewModel.trayText, trayItems: viewModel.trayItems)
+                    case .i3:
+                        MenuBarLabel(viewModel.trayText, trayItems: viewModel.trayItems, workspaces: viewModel.workspaces)
+                }
+            } else {
+                MenuBarLabel("⏸️")
             }
-        } else {
-            MenuBarLabel("⏸️")
         }
     }
 }
+
+private let hStackSpacing = CGFloat(6)
+private let itemSize = CGFloat(40)
+private let itemBorderSize = CGFloat(4)
+private let itemPadding = CGFloat(8)
+private let itemCornerRadius = CGFloat(6)
 
 @MainActor
 struct MenuBarLabel: View {
@@ -88,12 +104,6 @@ struct MenuBarLabel: View {
     var color: Color?
     var trayItems: [TrayItem]?
     var workspaces: [WorkspaceViewModel]?
-
-    let hStackSpacing = CGFloat(6)
-    let itemSize = CGFloat(40)
-    let itemBorderSize = CGFloat(4)
-    let itemPadding = CGFloat(8)
-    let itemCornerRadius = CGFloat(6)
 
     private var finalColor: Color {
         return color ?? (menuColorScheme == .dark ? Color.white : Color.black)
@@ -127,7 +137,7 @@ struct MenuBarLabel: View {
             if let trayItems {
                 HStack(spacing: hStackSpacing) {
                     ForEach(trayItems, id: \.id) { item in
-                        itemView(for: item)
+                        ItemView(item: item, color: finalColor)
                         if item.type == .mode {
                             Text(":")
                                 .font(.system(.largeTitle, design: textStyle.design))
@@ -145,7 +155,7 @@ struct MenuBarLabel: View {
                                     .bold()
                                     .padding(.bottom, 6)
                                 ForEach(otherWorkspaces, id: \.name) { item in
-                                    itemView(for: TrayItem(type: .workspace, name: item.name, isActive: false))
+                                    ItemView(item: TrayItem(type: .workspace, name: item.name, isActive: false), color: finalColor)
                                 }
                             }
                             .opacity(0.6)
@@ -162,14 +172,18 @@ struct MenuBarLabel: View {
             }
         }
     }
+}
 
-    @ViewBuilder
-    fileprivate func itemView(for item: TrayItem) -> some View {
+private struct ItemView: View {
+    var item: TrayItem
+    var color: Color
+
+    var body: some View {
         if item.name.containsEmoji() {
             // If workspace name contains emojis we use the plain emoji in text to avoid visibility issues scaling the emoji to fit the squares
             Text(item.name)
                 .font(.system(.largeTitle))
-                .foregroundStyle(finalColor)
+                .foregroundStyle(color)
                 .frame(height: itemSize)
         } else {
             if let imageName = item.systemImageName {
@@ -177,7 +191,7 @@ struct MenuBarLabel: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(finalColor)
+                    .foregroundStyle(color)
                     .frame(width: itemSize, height: itemSize)
             } else {
                 let text = Text(item.name)
@@ -193,14 +207,14 @@ struct MenuBarLabel: View {
                         text.blendMode(.destinationOut)
                     }
                     .compositingGroup()
-                    .foregroundStyle(finalColor)
+                    .foregroundStyle(color)
                     .frame(height: itemSize)
                 } else {
                     text.background {
                         RoundedRectangle(cornerRadius: itemCornerRadius, style: .circular)
                             .strokeBorder(lineWidth: itemBorderSize)
                     }
-                    .foregroundStyle(finalColor)
+                    .foregroundStyle(color)
                     .frame(height: itemSize)
                 }
             }
