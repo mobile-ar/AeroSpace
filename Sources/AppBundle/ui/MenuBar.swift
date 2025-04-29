@@ -99,11 +99,11 @@ private let itemCornerRadius = CGFloat(6)
 @MainActor
 struct MenuBarLabel: View {
     @Environment(\.colorScheme) var menuColorScheme: ColorScheme
-    var text: String
-    var textStyle: MenuBarTextStyle
-    var color: Color?
-    var trayItems: [TrayItem]?
-    var workspaces: [WorkspaceViewModel]?
+    let text: String
+    let textStyle: MenuBarTextStyle
+    let color: Color?
+    let trayItems: [TrayItem]?
+    let workspaces: [WorkspaceViewModel]?
 
     private var finalColor: Color {
         return color ?? (menuColorScheme == .dark ? Color.white : Color.black)
@@ -175,8 +175,8 @@ struct MenuBarLabel: View {
 }
 
 private struct ItemView: View {
-    var item: TrayItem
-    var color: Color
+    let item: TrayItem
+    let color: Color
 
     var body: some View {
         if item.name.containsEmoji() {
