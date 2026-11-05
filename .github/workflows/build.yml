@@ -7,8 +7,6 @@ on:
       - 'rr/**' # "rr" stands for "remote run"
   pull_request:
     branches: [ "main" ]
-  schedule:
-    - cron: '0 0 * * *' # every day at 00:00
   workflow_call: # Allows other workflows to reuse this workflow as a job (see queue.yml)
   workflow_dispatch: # Allows running this workflow manually from the Actions tab or via 'gh workflow run'
 
